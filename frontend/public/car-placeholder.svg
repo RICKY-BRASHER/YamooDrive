@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="Image de véhicule non disponible">
+  <rect width="1200" height="700" fill="#eeebf1"/>
+  <path d="M266 434h668l-44-133c-10-29-34-49-65-54l-95-15-72-87c-18-22-44-34-72-34H493c-27 0-51 13-67 34l-66 87-51 15c-32 9-56 34-66 66l-31 99c-7 22 10 43 34 43h20" fill="#796693" opacity=".8"/>
+  <path d="M415 306l62-81c7-9 17-14 29-14h90v95H415zm207-95h20c13 0 25 6 34 17l63 78H622v-95z" fill="#eeebf1"/>
+  <circle cx="414" cy="440" r="58" fill="#39364f"/>
+  <circle cx="414" cy="440" r="25" fill="#eeebf1"/>
+  <circle cx="798" cy="440" r="58" fill="#39364f"/>
+  <circle cx="798" cy="440" r="25" fill="#eeebf1"/>
+</svg>
