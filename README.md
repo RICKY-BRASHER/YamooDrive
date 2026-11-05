@@ -145,6 +145,71 @@ php artisan reverb:start --host=0.0.0.0 --port=8080
 
 Si le frontend et le backend utilisent des noms d’hôtes ou des ports différents, adaptez `FRONTEND_URLS`, `VITE_API_URL` et les paramètres `VITE_REVERB_*`.
 
+## Mise en production à faible coût (VM Docker)
+
+Le fichier `docker-compose.production.yml` prépare un déploiement sur une seule VM Linux : Caddy termine le HTTPS, le conteneur Nginx sert le build React et transmet l’API à PHP-FPM, et Laravel, son worker de tâches, Reverb et PostgreSQL restent sur un réseau Docker privé. Les ports PostgreSQL et Reverb ne sont pas publiés sur Internet. Cette application utilise la file de tâches PostgreSQL ; aucun service Redis séparé n’est nécessaire dans cette configuration.
+
+Oracle Cloud Infrastructure (OCI) propose des ressources Always Free, mais l’inscription demande une carte de crédit ou de débit pour vérifier l’identité. La documentation OCI indique qu’une éventuelle préautorisation est temporaire, mais une ressource hors limites Always Free ou un passage en compte payant peut entraîner des frais. Après la période d’essai, OCI indique une limite Always Free totale de 2 OCPU et 12 Go de mémoire pour Ampere A1. La capacité dépend de la région, il n’y a pas de SLA gratuit, et les comptes inactifs peuvent être suspendus. Vérifiez le marquage Always Free de chaque ressource dans la console et n’activez pas Pay As You Go si vous souhaitez rester à 0 €.
+
+Une sous-adresse DuckDNS peut fournir gratuitement un nom d’hôte pour la VM sans acheter de domaine. Caddy obtient alors automatiquement un certificat HTTPS lorsque le DNS pointe correctement vers la VM et que les ports TCP 80/443 sont accessibles. Garder l’interface et l’API sur le même nom d’hôte évite les problèmes de cookies de session et d’authentification Reverb.
+
+### Préparer et démarrer
+
+1. Créez une VM Ubuntu dans votre région OCI d’origine, en choisissant une forme explicitement marquée **Always Free** et en restant dans les limites Always Free de votre compte. Installez Docker Engine et le plug-in Docker Compose depuis la [documentation Docker](https://docs.docker.com/engine/install/).
+2. Autorisez les ports TCP 80 et 443 dans les règles réseau OCI et dans le pare-feu de la VM. Limitez SSH (port 22) à votre adresse IP ; ne publiez ni PostgreSQL (5432) ni Reverb (8080).
+3. Créez un sous-domaine DuckDNS et faites pointer son adresse IPv4 vers l’adresse publique de la VM.
+4. Clonez ce dépôt sur la VM, puis préparez le fichier d’environnement :
+
+   ```bash
+   git clone https://github.com/RICKY-BRASHER/YamooDrive.git
+   cd YamooDrive
+   cp .env.production.example .env.production
+   ```
+
+   Si le dépôt est privé, authentifiez Git sur la VM avec une clé de déploiement en lecture seule ; ne mettez jamais un jeton GitHub dans le fichier d’environnement.
+
+5. Modifiez `.env.production` **sur la VM seulement**. Remplacez le sous-domaine d’exemple dans `APP_DOMAIN`, `APP_URL`, `FRONTEND_URL`, `FRONTEND_URLS` et `MAIL_EHLO_DOMAIN`. Renseignez également un mot de passe PostgreSQL aléatoire et les paramètres SMTP d’un fournisseur de courrier. La vérification des adresses e-mail ne fonctionnera pas tant que le SMTP réel n’est pas configuré.
+6. Générez les identifiants Reverb et un mot de passe DB (par exemple avec `openssl rand -hex 32`). Gardez `REVERB_HOST=reverb`, `REVERB_PORT=8080` et `REVERB_SCHEME=http` dans l’environnement Laravel : cette adresse est privée au réseau Docker. Le build React reçoit séparément l’hôte public HTTPS pour sa connexion WSS.
+7. Validez la configuration et construisez les images :
+
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.production.yml config --quiet
+   docker compose --env-file .env.production -f docker-compose.production.yml build
+   ```
+
+8. Générez la clé Laravel puis copiez la valeur affichée dans `APP_KEY` de `.env.production` :
+
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.production.yml run --rm --no-deps app php artisan key:generate --show
+   ```
+
+   Ne changez plus `APP_KEY` après la mise en service : les sessions et données chiffrées en dépendent.
+
+9. Démarrez la base, appliquez les migrations, puis démarrez le reste :
+
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.production.yml up -d postgres
+   docker compose --env-file .env.production -f docker-compose.production.yml run --rm --no-deps app php artisan migrate --force
+   docker compose --env-file .env.production -f docker-compose.production.yml up -d
+   docker compose --env-file .env.production -f docker-compose.production.yml exec app php artisan admin:create admin@example.com
+   ```
+
+   Le mot de passe administrateur est demandé par la commande et ne doit pas être ajouté au dépôt. Consultez `https://VOTRE_SOUS_DOMAINE/up` et les journaux avec `docker compose --env-file .env.production -f docker-compose.production.yml logs -f`.
+
+### Mises à jour et sauvegardes
+
+Pour mettre à jour le code, appliquez les nouvelles migrations avant de redémarrer les services :
+
+```bash
+git pull --ff-only
+docker compose --env-file .env.production -f docker-compose.production.yml build
+docker compose --env-file .env.production -f docker-compose.production.yml up -d postgres
+docker compose --env-file .env.production -f docker-compose.production.yml run --rm --no-deps app php artisan migrate --force
+docker compose --env-file .env.production -f docker-compose.production.yml up -d
+```
+
+Les données PostgreSQL, les photos téléversées et les certificats Caddy sont conservés dans des volumes Docker de la VM, pas dans Git. Une panne ou suppression de la VM peut toutefois les faire perdre : planifiez des sauvegardes chiffrées hors de la VM pour la base et les photos, et testez leur restauration. Ne lancez pas `docker compose down -v` : l’option `-v` supprime les volumes de données. Ce déploiement gratuit est adapté à une démonstration ou un petit projet, mais une activité de production avec des données clients importantes doit prévoir un hébergement avec support, sauvegardes et SLA.
+
 ## Tests et contrôles qualité
 
 ```bash

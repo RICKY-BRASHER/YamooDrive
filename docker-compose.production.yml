@@ -1,0 +1,114 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:?Set DB_DATABASE in .env.production}
+      POSTGRES_USER: ${DB_USERNAME:?Set DB_USERNAME in .env.production}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set a strong DB_PASSWORD in .env.production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - private
+
+  app:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.production
+      target: app
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    command: ["sh", "-c", "php artisan config:cache && exec php-fpm -F"]
+    volumes:
+      - laravel_storage:/var/www/html/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - private
+
+  worker:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.production
+      target: app
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    command: ["php", "artisan", "queue:work", "database", "--sleep=3", "--tries=3", "--timeout=90"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - private
+
+  reverb:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.production
+      target: app
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - private
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.production
+      target: web
+      args:
+        VITE_API_URL: /api
+        VITE_REVERB_APP_KEY: ${REVERB_APP_KEY:?Set REVERB_APP_KEY in .env.production}
+        VITE_REVERB_HOST: ${APP_DOMAIN:?Set APP_DOMAIN in .env.production}
+        VITE_REVERB_PORT: "443"
+        VITE_REVERB_SCHEME: https
+    restart: unless-stopped
+    volumes:
+      - laravel_storage:/var/www/html/storage:ro
+    depends_on:
+      - app
+      - reverb
+    networks:
+      - edge
+      - private
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN in .env.production}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+    networks:
+      - edge
+
+volumes:
+  postgres_data:
+  laravel_storage:
+  caddy_data:
+  caddy_config:
+
+networks:
+  edge:
+  private:
+    driver: bridge

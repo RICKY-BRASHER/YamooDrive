@@ -1,0 +1,8 @@
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	@reverb path /app/*
+	reverse_proxy @reverb reverb:8080
+
+	reverse_proxy web:8080
+}
