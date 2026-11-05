@@ -11,6 +11,8 @@ Route::middleware('web')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     Route::get('/user', [AuthController::class, 'currentUser'])->middleware('auth');
+    Route::patch('/profile', [AuthController::class, 'updateProfile'])->middleware('auth');
+    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
     Route::get('/my/reservations', [RentalController::class, 'myReservations'])->middleware('auth');
     Route::post('/reservations', [RentalController::class, 'storePublicReservation'])->middleware('auth');
 

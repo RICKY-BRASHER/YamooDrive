@@ -25,6 +25,42 @@ export type AuthUser = {
   licenseNumber: string | null
 }
 
+export type ClientReservation = {
+  id: number
+  createdAt: string
+  start: string
+  end: string
+  status: 'En attente' | 'Confirmée' | 'En cours' | 'Terminée' | 'Annulée'
+  total: number
+  deposit: number
+  vehicle: {
+    name: string
+    registration: string
+    image: string | null
+  }
+  offerName: string | null
+  payments: Array<{ type: string; amount: number; status: string }>
+  returnDetails: {
+    mileage: number
+    fuel: string
+    damage: string | null
+    extraFees: number
+  } | null
+}
+
+export type ProfileUpdate = {
+  name: string
+  email: string
+  current_password?: string
+  password?: string
+  password_confirmation?: string
+}
+
+type ProfileUpdateResult = {
+  user: AuthUser
+  emailVerificationRequired: boolean
+}
+
 export type AdminVehicleInput = Pick<
   AgencyVehicle,
   'brand' | 'name' | 'category' | 'price' | 'priceHour' | 'seats' | 'transmission' | 'fuel'
@@ -456,6 +492,76 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
     throw error 
   }
+}
+
+export async function updateUserProfile(profile: ProfileUpdate): Promise<ProfileUpdateResult> {
+  await api.get('/csrf-cookie')
+  const { data } = await api.patch<ProfileUpdateResult>('/profile', profile)
+  return data
+}
+
+export async function logoutUser(): Promise<void> {
+  await api.get('/csrf-cookie')
+  await api.post('/logout')
+}
+
+export async function getClientReservations(): Promise<ClientReservation[]> {
+  const { data } = await api.get<{ reservations: Array<{
+    id: number
+    created_at: string
+    date_debut: string
+    date_fin: string
+    statut: 'en_attente' | 'confirmee' | 'en_cours' | 'terminee' | 'annulee'
+    total_prix: string | number
+    caution_appliquee: string | number
+    bon_plan_nom_applique: string | null
+    voiture: { marque: string; modele: string; immatriculation: string; image: string | null }
+    paiements: Array<{ type: string; montant: string | number; statut: string }>
+    retour: {
+      km_retour: number
+      carburant_retour: string
+      degats: string | null
+      frais_supplementaires: string | number
+    } | null
+  }> }>('/my/reservations')
+  const statuses: Record<'en_attente' | 'confirmee' | 'en_cours' | 'terminee' | 'annulee', ClientReservation['status']> = {
+    en_attente: 'En attente',
+    confirmee: 'Confirmée',
+    en_cours: 'En cours',
+    terminee: 'Terminée',
+    annulee: 'Annulée',
+  }
+
+  return data.reservations.map((reservation) => ({
+    id: reservation.id,
+    createdAt: reservation.created_at,
+    start: reservation.date_debut,
+    end: reservation.date_fin,
+    status: statuses[reservation.statut],
+    total: Number(reservation.total_prix),
+    deposit: Number(reservation.caution_appliquee),
+    vehicle: {
+      name: `${reservation.voiture.marque} ${reservation.voiture.modele}`,
+      registration: reservation.voiture.immatriculation,
+      image: reservation.voiture.image
+        ? /^https?:\/\//i.test(reservation.voiture.image)
+          ? reservation.voiture.image
+          : `${API_ORIGIN}/storage/${reservation.voiture.image.replace(/^\/+/, '')}`
+        : null,
+    },
+    offerName: reservation.bon_plan_nom_applique,
+    payments: reservation.paiements.map((payment) => ({
+      type: payment.type,
+      amount: Number(payment.montant),
+      status: payment.statut,
+    })),
+    returnDetails: reservation.retour ? {
+      mileage: reservation.retour.km_retour,
+      fuel: reservation.retour.carburant_retour,
+      damage: reservation.retour.degats,
+      extraFees: Number(reservation.retour.frais_supplementaires),
+    } : null,
+  }))
 }
 
 export function getApiErrorMessage(error: unknown): string {

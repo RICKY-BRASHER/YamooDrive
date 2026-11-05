@@ -1,4 +1,5 @@
-import { ArrowRight, ArrowUpRight, Heart, Menu, Sparkles, X } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, CalendarDays, Heart, LogOut, Menu, Sparkles, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import BrandLockup from './BrandLockup'
 
 type SiteHeaderProps = {
@@ -6,7 +7,9 @@ type SiteHeaderProps = {
   favoritesOnly: boolean
   onToggleFavorites: () => void
   onLogin: () => void
+  onLogout: () => void
   userLabel?: string
+  userRole?: 'admin' | 'client'
   mobileMenuOpen: boolean
   onToggleMobileMenu: () => void
   onCloseMobileMenu: () => void
@@ -17,7 +20,9 @@ function SiteHeader({
   favoritesOnly,
   onToggleFavorites,
   onLogin,
+  onLogout,
   userLabel,
+  userRole,
   mobileMenuOpen,
   onToggleMobileMenu,
   onCloseMobileMenu,
@@ -55,6 +60,12 @@ function SiteHeader({
           {userLabel
             ? <span className="mobile-login user-name" title={userLabel}>{displayName}</span>
             : <button className="mobile-login" type="button" onClick={onLogin}>Se connecter <ArrowUpRight size={16} /></button>}
+          {userLabel && userRole === 'client' && (
+            <>
+              <Link className="mobile-login account-menu-link" to="/mes-reservations" onClick={onCloseMobileMenu}><CalendarDays size={15} /> Mes réservations</Link>
+              <button className="mobile-login account-menu-link" type="button" onClick={onLogout}><LogOut size={15} /> Se déconnecter</button>
+            </>
+          )}
         </nav>
         <div className="header-actions">
           <button
@@ -68,7 +79,13 @@ function SiteHeader({
             {favoritesCount > 0 && <span className="favorite-count">{favoritesCount}</span>}
           </button>
           {userLabel
-            ? <span className="login-button user-name" title={userLabel}>{displayName}</span>
+            ? userRole === 'client'
+              ? <div className="client-account">
+                  <span className="client-name" title={userLabel}>{displayName}</span>
+                  <Link className="account-action" to="/mes-reservations" aria-label="Consulter mes réservations"><CalendarDays size={16} /><span>Réservations</span></Link>
+                  <button className="account-action" type="button" onClick={onLogout} aria-label="Se déconnecter"><LogOut size={16} /><span>Sortir</span></button>
+                </div>
+              : <span className="login-button user-name" title={userLabel}>{displayName}</span>
             : <button className="login-button" type="button" onClick={onLogin}>Se connecter <ArrowUpRight size={16} /></button>}
         </div>
       </header>

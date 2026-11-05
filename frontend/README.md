@@ -18,9 +18,13 @@ Avec Docker Compose, Vite relaie les requêtes WebSocket du navigateur vers le s
 - `src/layout/YamooCatalog.tsx` : charge le catalogue public de véhicules et d’offres, et coordonne la connexion et les réservations client.
 - `src/components/booking/PublicReservationModal.tsx` : envoie une demande de réservation client.
 - `src/layout/AdminConsole.tsx` : charge les données admin, affiche le nom de l’administrateur connecté et s’abonne à l’activité privée en direct.
+- `src/pages/admin/SettingsRoutePage.tsx` : permet à l’administrateur de modifier son nom, son adresse e-mail et son mot de passe.
+- `src/pages/ClientReservationsPage.tsx` : affiche au client connecté l’avancement et l’historique de ses réservations.
 - `src/components/admin/` : écrans de gestion de la flotte, des clients, des offres et des réservations.
 - `src/services/api.ts` : client Laravel typé et adaptation des réponses de l’API.
 - `src/services/realtime.ts` : abonnement Laravel Echo/Reverb.
+
+Les routes de l’espace agence vérifient le rôle administrateur ; un administrateur connecté est redirigé vers `/admin` s’il ouvre le catalogue public. Le client peut consulter `/mes-reservations` et fermer sa session depuis l’en-tête du catalogue.
 
 Les données métier sont chargées depuis Laravel ; le stockage local ne sert que de cache d’affichage de courte durée. Le serveur demeure la source de vérité pour les disponibilités, les prix, les autorisations et la persistance.
 

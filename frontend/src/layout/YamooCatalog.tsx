@@ -11,7 +11,7 @@ import SiteFooter from '../components/SiteFooter'
 import SiteHeader from '../components/SiteHeader'
 import Toast from '../components/Toast'
 import WhySection from '../components/WhySection'
-import { getApiErrorMessage, getCurrentUser, getPublicCatalog, type AuthUser } from '../services/api'
+import { getApiErrorMessage, getCurrentUser, getPublicCatalog, logoutUser, type AuthUser } from '../services/api'
 import type { AgencyOffer, AgencyVehicle } from '../components/admin/agencyData'
 import type { CarListing } from '../components/carData'
 import './YamooCatalog.css'
@@ -91,6 +91,16 @@ function YamooCatalog() {
   const openAuthModal = useCallback(() => setAuthModalOpen(true), [])
   const closeAuthModal = useCallback(() => setAuthModalOpen(false), [])
 
+  const signOut = async () => {
+    try {
+      await logoutUser()
+      setUser(null)
+      setToast('Vous êtes déconnecté.')
+    } catch (error: unknown) {
+      setToast(getApiErrorMessage(error))
+    }
+  }
+
   const startUserSession = (user: AuthUser) => {
     setUser(user)
     if (user.role === 'admin') {
@@ -126,7 +136,9 @@ function YamooCatalog() {
         favoritesOnly={favoritesOnly}
         onToggleFavorites={toggleFavoritesOnly}
         onLogin={openAuthModal}
+        onLogout={signOut}
         userLabel={user?.name ?? ''}
+        userRole={user?.role}
         mobileMenuOpen={mobileMenuOpen}
         onToggleMobileMenu={() => setMobileMenuOpen((open) => !open)}
         onCloseMobileMenu={() => setMobileMenuOpen(false)}

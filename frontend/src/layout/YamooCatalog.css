@@ -220,6 +220,47 @@
   cursor: default;
 }
 
+.client-account {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.client-name {
+  max-width: 150px;
+  overflow: hidden;
+  padding: 8px 13px;
+  border: 1px solid #dce7c8;
+  border-radius: 999px;
+  background: #f1f5e9;
+  color: #3d563d;
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #48584a;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease;
+}
+
+.account-action:hover {
+  background: #edf1e5;
+  color: #25392b;
+}
+
 .mobile-login.user-name {
   justify-content: flex-start;
   padding-inline: 4px;
@@ -1870,6 +1911,10 @@
     display: none;
   }
 
+  .header-actions .client-account {
+    display: none;
+  }
+
   .header-actions .favorites-link {
     padding: 8px;
   }
@@ -1922,6 +1967,14 @@
     border-color: var(--yamoo-ink);
     background: var(--yamoo-ink);
     color: #f4f4e8;
+  }
+
+  .main-nav .mobile-login.account-menu-link {
+    justify-content: flex-start;
+    gap: 9px;
+    border-color: #e2e4d8;
+    background: transparent;
+    color: #394a3b;
   }
 
   .hero-section {

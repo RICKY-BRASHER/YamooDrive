@@ -44,7 +44,7 @@ class RentalController extends Controller
         ]);
 
         $vehicle->update($validated);
-        AdminActivity::dispatch('vehicle.updated', 'A vehicle availability status changed.', $vehicle->id);
+        AdminActivity::dispatch('vehicle.updated', 'La disponibilité d’un véhicule a été modifiée.', $vehicle->id);
 
         return response()->json(['vehicle' => $vehicle]);
     }
@@ -90,7 +90,7 @@ class RentalController extends Controller
             return $offer->load(['voitures', 'voiture'])->loadCount('reservations');
         });
 
-        AdminActivity::dispatch('offer.created', 'A new rental offer was created.', $offer->id);
+        AdminActivity::dispatch('offer.created', 'Une nouvelle offre de location a été créée.', $offer->id);
 
         return response()->json(['offer' => $offer], 201);
     }
@@ -100,7 +100,7 @@ class RentalController extends Controller
         $this->authorizeAdmin($request);
         $validated = $request->validate(['actif' => ['required', 'boolean']]);
         $offer->update($validated);
-        AdminActivity::dispatch('offer.updated', 'A rental offer status changed.', $offer->id);
+        AdminActivity::dispatch('offer.updated', 'Le statut d’une offre de location a été modifié.', $offer->id);
 
         return response()->json(['offer' => $offer->load(['voitures', 'voiture'])]);
     }
@@ -159,7 +159,7 @@ class RentalController extends Controller
 
         $reservation = $service->create($validated);
         $reservation->load(['client', 'voiture', 'bonPlan', 'paiements', 'retour']);
-        AdminActivity::dispatch('reservation.created', 'A reservation was created.', $reservation->id);
+        AdminActivity::dispatch('reservation.created', 'Une réservation a été créée par l’agence.', $reservation->id);
 
         return response()->json(['reservation' => $reservation], 201);
     }
@@ -189,7 +189,7 @@ class RentalController extends Controller
 
         $reservation = $service->create($validated);
         $reservation->load(['client', 'voiture', 'bonPlan', 'paiements', 'retour']);
-        AdminActivity::dispatch('reservation.created', 'A customer submitted a booking request.', $reservation->id);
+        AdminActivity::dispatch('reservation.created', 'Un client a envoyé une demande de réservation.', $reservation->id);
 
         return response()->json(['reservation' => $reservation], 201);
     }
@@ -220,7 +220,7 @@ class RentalController extends Controller
         }
         $reservation->update(['statut' => $nextStatus, 'km_depart' => $reservation->km_depart]);
 
-        AdminActivity::dispatch('reservation.updated', 'A reservation status changed.', $reservation->id);
+        AdminActivity::dispatch('reservation.updated', 'Le statut d’une réservation a été modifié.', $reservation->id);
 
         return response()->json([
             'reservation' => $reservation->fresh()->load(['client', 'voiture', 'bonPlan', 'paiements', 'retour']),
@@ -258,7 +258,7 @@ class RentalController extends Controller
                 'statut' => 'paye',
             ]);
         });
-        AdminActivity::dispatch('payment.recorded', 'A payment was recorded for a reservation.', $reservation->id);
+        AdminActivity::dispatch('payment.recorded', 'Un paiement a été enregistré pour une réservation.', $reservation->id);
 
         return response()->json(['payment' => $payment], 201);
     }
@@ -294,7 +294,7 @@ class RentalController extends Controller
             return $return;
         });
 
-        AdminActivity::dispatch('reservation.returned', 'A vehicle return was recorded.', $reservation->id);
+        AdminActivity::dispatch('reservation.returned', 'Le retour d’un véhicule a été enregistré.', $reservation->id);
 
         return response()->json(['return' => $return], 201);
     }

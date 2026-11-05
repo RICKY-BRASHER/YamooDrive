@@ -4,11 +4,12 @@ import {
   CarFront,
   LayoutDashboard,
   LogOut,
+  Settings,
   UsersRound,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-export type AdminPage = 'dashboard' | 'reservations' | 'fleet' | 'clients' | 'offers'
+export type AdminPage = 'dashboard' | 'reservations' | 'fleet' | 'clients' | 'offers' | 'settings'
 
 const navigation: { page: AdminPage; label: string; path: string; icon: typeof LayoutDashboard }[] = [
   { page: 'dashboard', label: 'Vue d’ensemble', path: '/admin', icon: LayoutDashboard },
@@ -16,6 +17,7 @@ const navigation: { page: AdminPage; label: string; path: string; icon: typeof L
   { page: 'fleet', label: 'Parc automobile', path: '/admin/fleet', icon: CarFront },
   { page: 'clients', label: 'Clients', path: '/admin/clients', icon: UsersRound },
   { page: 'offers', label: 'Bons plans', path: '/admin/offers', icon: BadgePercent },
+  { page: 'settings', label: 'Paramètres', path: '/admin/settings', icon: Settings },
 ] 
 
 type AdminSidebarProps = {
@@ -23,9 +25,10 @@ type AdminSidebarProps = {
   pendingCount: number
   adminName: string
   adminInitials: string
+  onLogout: () => void
 }
 
-function AdminSidebar({ currentPage, pendingCount, adminName, adminInitials }: AdminSidebarProps) {
+function AdminSidebar({ currentPage, pendingCount, adminName, adminInitials, onLogout }: AdminSidebarProps) {
   return (
     <aside className="flex w-full shrink-0 flex-col bg-[#17172f] text-white lg:fixed lg:inset-y-0 lg:left-0 lg:w-[258px]">
       <Link to="/" className="flex items-center gap-3 px-6 py-6 text-white no-underline">
@@ -62,7 +65,7 @@ function AdminSidebar({ currentPage, pendingCount, adminName, adminInitials }: A
         <div className="mb-3 flex items-center gap-3 rounded-xl bg-white/5 p-3">
           <span className="grid size-9 place-items-center rounded-full bg-[#e8c879] text-xs font-bold text-[#28223b]">{adminInitials}</span>
           <span className="min-w-0 flex-1"><strong className="block truncate text-xs">{adminName}</strong><small className="text-[10px] text-[#aaa7bd]">Administrateur</small></span>
-          <button type="button" className="text-[#aaa7bd] hover:text-white" aria-label="Se déconnecter"><LogOut size={15} /></button>
+          <button type="button" onClick={onLogout} className="text-[#aaa7bd] hover:text-white" aria-label="Se déconnecter"><LogOut size={15} /></button>
         </div>
       </div>
     </aside>

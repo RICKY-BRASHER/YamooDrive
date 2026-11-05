@@ -6,6 +6,7 @@ Cette application Laravel fournit l’API Yamoo Drive avec authentification par 
 
 - `GET /api/catalog` : véhicules de la flotte et offres actives pour le catalogue public.
 - `POST /api/register`, `POST /api/login` et `GET /api/user` : inscription client et authentification par session.
+- `PATCH /api/profile` et `POST /api/logout` : modification du profil connecté et fermeture sécurisée de la session.
 - `GET /api/my/reservations`, `POST /api/reservations` : demandes de réservation d’un client.
 - `/api/admin/*` : gestion réservée aux administrateurs de la flotte, des clients, des offres, des réservations, des paiements et des retours de véhicules.
 - `POST /broadcasting/auth` : autorisation par session Laravel des canaux privés Reverb.

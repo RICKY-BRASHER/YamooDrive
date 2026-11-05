@@ -9,6 +9,7 @@ export type AdminConsoleContext = {
   clients: AgencyClient[]
   vehicles: AgencyVehicle[]
   offers: AgencyOffer[]
+  onProfileUpdated: (user: AuthUser) => void
   onUpdateReservationStatus: (id: string, status: ReservationStatus) => Promise<void>
   onCreateReservation: (reservation: AdminReservation) => Promise<void>
   onRecordPayment: (reservation: AdminReservation, type: 'location' | 'caution', amount: number, method: 'cb' | 'espece' | 'mobile') => Promise<void>

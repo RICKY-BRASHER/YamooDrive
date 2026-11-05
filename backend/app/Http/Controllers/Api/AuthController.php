@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -117,6 +118,75 @@ class AuthController extends Controller
         }
 
         return response()->json(['user' => $this->userPayload($user)]);
+    }
+
+    public function updateProfile(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $client = $user->client;
+        $request->merge([
+            'name' => trim((string) $request->input('name')),
+            'email' => mb_strtolower(trim((string) $request->input('email'))),
+        ]);
+        $emailChanged = $request->input('email') !== $user->email;
+        $clientEmailRule = Rule::unique('clients', 'email');
+        if ($client !== null) {
+            $clientEmailRule->ignore($client->id);
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'min:2', 'max:255'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+                $clientEmailRule,
+            ],
+            'current_password' => [
+                Rule::requiredIf($emailChanged || $request->filled('password')),
+                'current_password',
+            ],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        DB::transaction(function () use ($user, $client, $validated, $emailChanged): void {
+            $user->name = $validated['name'];
+            $user->email = $validated['email'];
+            if (isset($validated['password'])) {
+                $user->password = $validated['password'];
+            }
+            if ($emailChanged) {
+                $user->email_verified_at = null;
+            }
+            $user->save();
+
+            if ($client !== null) {
+                $client->update([
+                    'nom' => $validated['name'],
+                    'email' => $validated['email'],
+                ]);
+            }
+        });
+
+        if ($emailChanged) {
+            $user->sendEmailVerificationNotification();
+        }
+
+        return response()->json([
+            'user' => $this->userPayload($user->fresh()),
+            'emailVerificationRequired' => $emailChanged,
+        ]);
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return response()->json(['message' => 'Vous êtes déconnecté.']);
     }
 
     private function userPayload(User $user): array

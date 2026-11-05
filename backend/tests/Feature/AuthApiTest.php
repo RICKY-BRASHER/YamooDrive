@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\User;
 use App\Notifications\VerifyEmailNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -183,6 +184,84 @@ class AuthApiTest extends TestCase
     public function test_a_guest_cannot_retrieve_the_authenticated_user(): void
     {
         $this->getJson('/api/user')->assertUnauthorized();
+    }
+
+    public function test_an_authenticated_user_can_update_their_profile_and_client_details(): void
+    {
+        Notification::fake();
+        $user = User::create([
+            'name' => 'Aicha Kone',
+            'email' => 'aicha@example.com',
+            'password' => 'password-123',
+        ]);
+        $client = $user->client()->create([
+            'nom' => 'Aicha Kone',
+            'email' => 'aicha@example.com',
+            'telephone' => '+237699123456',
+        ]);
+        $user->forceFill(['email_verified_at' => now()])->save();
+
+        $this->actingAs($user)
+            ->patchJson('/api/profile', [
+                'name' => ' Aicha Njoya ',
+                'email' => ' AICHA.NJOYA@EXAMPLE.COM ',
+                'current_password' => 'password-123',
+            ])
+            ->assertOk()
+            ->assertJsonPath('user.name', 'Aicha Njoya')
+            ->assertJsonPath('user.email', 'aicha.njoya@example.com')
+            ->assertJsonPath('emailVerificationRequired', true);
+
+        $this->assertSame('Aicha Njoya', $client->fresh()->nom);
+        $this->assertSame('aicha.njoya@example.com', $client->fresh()->email);
+        $this->assertNull($user->fresh()->email_verified_at);
+    }
+
+    public function test_profile_password_changes_require_the_current_password_and_confirmation(): void
+    {
+        $user = User::create([
+            'name' => 'Yamoo Admin',
+            'email' => 'admin@example.com',
+            'password' => 'old-password-123',
+        ]);
+
+        $this->actingAs($user)
+            ->patchJson('/api/profile', [
+                'name' => 'Yamoo Admin',
+                'email' => 'admin@example.com',
+                'current_password' => 'wrong-password',
+                'password' => 'new-password-123',
+                'password_confirmation' => 'new-password-123',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('current_password');
+
+        $this->actingAs($user)
+            ->patchJson('/api/profile', [
+                'name' => 'Yamoo Admin',
+                'email' => 'admin@example.com',
+                'current_password' => 'old-password-123',
+                'password' => 'new-password-123',
+                'password_confirmation' => 'new-password-123',
+            ])
+            ->assertOk();
+
+        $this->assertTrue(Hash::check('new-password-123', $user->fresh()->password));
+    }
+
+    public function test_an_authenticated_user_can_log_out(): void
+    {
+        $user = User::create([
+            'name' => 'Aicha Kone',
+            'email' => 'aicha@example.com',
+            'password' => 'password-123',
+        ]);
+
+        $this->actingAs($user)
+            ->postJson('/api/logout')
+            ->assertOk();
+
+        $this->assertGuest();
     }
 
     public function test_an_unverified_user_receives_another_verification_email_instead_of_logging_in(): void

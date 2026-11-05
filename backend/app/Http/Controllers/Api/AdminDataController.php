@@ -65,7 +65,7 @@ class AdminDataController extends Controller
             throw $exception;
         }
 
-        AdminActivity::dispatch('vehicle.created', 'A new vehicle was added to the fleet.', $vehicle->id);
+        AdminActivity::dispatch('vehicle.created', 'Un véhicule a été ajouté à la flotte.', $vehicle->id);
 
         return response()->json(['vehicle' => $vehicle], 201);
     }
@@ -94,7 +94,7 @@ class AdminDataController extends Controller
             'numero_permis' => ['required', 'string', 'min:3', 'max:255', 'unique:clients,numero_permis'],
             'date_naissance' => ['nullable', 'date', 'before_or_equal:today'],
         ]));
-        AdminActivity::dispatch('client.created', 'A new client profile was created.', $client->id);
+        AdminActivity::dispatch('client.created', 'Un nouveau profil client a été créé.', $client->id);
 
         return response()->json(['client' => $client], 201);
     }

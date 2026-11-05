@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Bell, ChevronDown, Search, Wifi, WifiOff } from 'lucide-react'
-import { Outlet, useLocation, useOutletContext } from 'react-router-dom'
+import { Link, Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom'
 import AdminSidebar, { type AdminPage } from '../components/admin/AdminSidebar'
 import { isAdminReservationArray } from '../components/admin/adminData'
 import type { AdminReservation } from '../components/admin/adminData'
@@ -19,6 +19,7 @@ import {
   getAdminReservations,
   getAdminVehicles,
   getApiErrorMessage,
+  logoutUser,
   recordAdminPayment,
   recordAdminReturn,
   updateAdminReservationStatus,
@@ -32,11 +33,14 @@ const pageTitles: Record<AdminPage, string> = {
   fleet: 'Parc automobile',
   clients: 'Clients',
   offers: 'Bons plans',
+  settings: 'Paramètres',
 }
 
 function AdminConsole() {
   const { pathname } = useLocation()
-  const { user } = useOutletContext<{ user: AuthUser }>()
+  const navigate = useNavigate()
+  const { user: authenticatedUser } = useOutletContext<{ user: AuthUser }>()
+  const [user, setUser] = useState(authenticatedUser)
   const [apiError, setApiError] = useState<string | null>(null)
   const [activityNotice, setActivityNotice] = useState('')
   const [activities, setActivities] = useState<AdminActivity[]>([])
@@ -52,6 +56,8 @@ function AdminConsole() {
         ? 'clients'
         : pathname === '/admin/offers'
           ? 'offers'
+          : pathname === '/admin/settings'
+            ? 'settings'
           : 'dashboard'
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -122,12 +128,22 @@ function AdminConsole() {
     await recordAdminReturn({ reservation, mileage, fuel, damage, extraFees })
   }
 
+  const logout = async () => {
+    try {
+      await logoutUser()
+      navigate('/', { replace: true })
+    } catch (error) {
+      setApiError(getApiErrorMessage(error))
+    }
+  }
+
   const outletContext: AdminConsoleContext = {
     user,
     reservations,
     clients,
     vehicles,
     offers,
+    onProfileUpdated: setUser,
     onUpdateReservationStatus: updateReservationStatus,
     onCreateReservation: createReservation,
     onRecordPayment: recordPayment,
@@ -145,6 +161,7 @@ function AdminConsole() {
         pendingCount={reservations.filter((item) => item.status === 'En attente').length}
         adminName={user.name}
         adminInitials={adminInitials}
+        onLogout={logout}
       />
       <div className="min-w-0 lg:pl-[258px]">
         <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-[#ebe8ef] bg-white/95 px-5 backdrop-blur sm:px-8">
@@ -187,7 +204,7 @@ function AdminConsole() {
                 </section>
               )}
             </div>
-            <button type="button" className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-[#f6f4f8]" aria-label={`Profil de ${user.name}`}><span className="grid size-8 place-items-center rounded-full bg-[#292644] text-[10px] font-bold text-[#f3dfa9]">{adminInitials}</span><span className="hidden text-left sm:block"><strong className="block text-[11px] text-[#514e61]">{user.name}</strong><small className="text-[9px] text-[#9996a3]">Administrateur</small></span><ChevronDown size={14} className="hidden text-[#9996a3] sm:block" /></button>
+            <Link to="/admin/settings" className="flex items-center gap-2 rounded-lg p-1.5 no-underline hover:bg-[#f6f4f8]" aria-label={`Paramètres du profil de ${user.name}`}><span className="grid size-8 place-items-center rounded-full bg-[#292644] text-[10px] font-bold text-[#f3dfa9]">{adminInitials}</span><span className="hidden text-left sm:block"><strong className="block text-[11px] text-[#514e61]">{user.name}</strong><small className="text-[9px] text-[#9996a3]">Paramètres du compte</small></span><ChevronDown size={14} className="hidden text-[#9996a3] sm:block" /></Link>
           </div>
         </header>
         <main className="mx-auto max-w-[1480px] p-5 sm:p-8 lg:p-9">
